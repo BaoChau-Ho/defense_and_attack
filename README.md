@@ -19,7 +19,7 @@ Usage: We index the datasets and models used as backbone in the code, and so we 
 * `--father_directory` is the directory that you store the dataset, the model and the generated results (both accuracies and adversarial images)
 * `--number_of_imgs` is the number of adversarial images you wish to save
 * Note:
-   - Datasets and Models should be prepared beforehand: Most datasets can be downloaded via pytorch's Dataset, except for IMGNET. Models from pytorch are trained on IMGNET, while the code requires them to be trained on other datasets as well.
+   - Datasets (as well as a json file of the labels) and Models should be prepared beforehand: Most datasets can be downloaded via pytorch's Dataset, except for IMGNET. Models from pytorch are trained on IMGNET, while the code requires them to be trained on other datasets as well.
    - The hyperparameters for the adversarial methods, the batch size, etc can be modified according to your needs
 
 
