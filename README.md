@@ -9,7 +9,7 @@ The adversarial attacks that the paper focus on are as following:
 | PGD (L2) | Towards Deep Learning Models Resistant to Adversarial Attacks ([Mardry et al., 2017](https://arxiv.org/abs/1706.06083))|
 | CW (L2) | Towards Evaluating the Robustness of Neural Networks ([Carlini et al., 2016](https://arxiv.org/abs/1608.04644)) |
 
-We generate attacks from four different image sets: CIFAR10, CIFAR100, MNIST and IMAGENET (only the test set)  
+We generate attacks from four different image sets: CIFAR10, CIFAR100, MNIST and IMAGENET
 Each set use 5 different backbone models: Resnet 50, Resnet 100, MobileNet, DenseNet, AlexNet and Inception v3 Net
 The code used to generate the attacks and their top 1 and top 5 accuracies is adversarial_attacks_get_results.py
 
