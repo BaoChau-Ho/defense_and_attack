@@ -14,10 +14,7 @@ Each set uses 5 different backbone models: Resnet50, Resnet101, MobileNet v2, De
 The code used to generate the attacks and their top 1 and top 5 accuracies is `adversarial_attacks_get_results.py`
 
 Usage: We index the datasets and models used as backbone in the code for convenience
-* `--index_dataset` is the index of the dataset (adhering to the way we index it in the code)
-* `--index_model` is the index of the model used as backbone in respect to the dataset (adhering to the way we index it in the code)
-* `--father_directory` is the directory that you store the dataset, the model and the generated results (both accuracies and adversarial images)
-* `--number_of_imgs` is the number of adversarial images you wish to save
+* `adversarial_attacks_get_result.py` is used to generate adversarial attacks along side the top 1 and top 5 accuracies of the model on both the original and the adversarial datasets.
 * Note:
   - Datasets (along side a json file of the labels) and Models should be prepared beforehand: Most datasets can be downloaded via pytorch's Dataset, except for IMGNET. Models from pytorch are trained on IMGNET, while the code requires them to be trained on other datasets as well.
   - The code is mostly for reference purpose.
