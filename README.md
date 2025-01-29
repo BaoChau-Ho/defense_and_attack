@@ -11,7 +11,7 @@ The adversarial attacks that the paper focuses on are as following:
 
 We generate attacks from four different image sets: CIFAR10, CIFAR100, MNIST and IMAGENET  
 Each set uses 5 different backbone models: Resnet 50, Resnet 100, MobileNet, DenseNet, AlexNet and InceptionNet v3  
-The code used to generate the attacks and their top 1 and top 5 accuracies is adversarial_attacks_get_results.py
+The code used to generate the attacks and their top 1 and top 5 accuracies is `adversarial_attacks_get_results.py`
 
 Usage: We index the datasets and models used as backbone in the code, and so we shall use it as inputs of the code
 * `--index_dataset` is the index of the dataset (adhering to the way we index it in the code)
