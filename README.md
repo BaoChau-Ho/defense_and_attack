@@ -10,7 +10,7 @@ The adversarial attacks that the paper focuses on are as following:
 | CW (L2) | Towards Evaluating the Robustness of Neural Networks ([Carlini et al., 2016](https://arxiv.org/abs/1608.04644)) |
 
 We generate attacks from four different image sets: CIFAR10, CIFAR100, MNIST and IMAGENET  
-Each set uses 5 different backbone models: Resnet 50, Resnet 100, MobileNet, DenseNet, AlexNet and InceptionNet v3
+Each set uses 5 different backbone models: Resnet 50, Resnet 100, MobileNet, DenseNet, AlexNet and InceptionNet v3  
 The code used to generate the attacks and their top 1 and top 5 accuracies is adversarial_attacks_get_results.py
 
 Usage: We index the datasets and models used as backbone in the code, and so we shall use it as inputs of the code
