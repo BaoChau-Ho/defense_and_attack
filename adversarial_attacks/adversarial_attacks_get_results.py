@@ -16,7 +16,7 @@ from torchvision import transforms
 from pytorchtools import EarlyStopping
 from utils import Logger
 from pynvml import *
-import torchattacks
+import cw
 
 import json
 import os
@@ -31,45 +31,49 @@ def make_directory(dirs):
             os.makedirs(dir)
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--index_model",type=int,default=0)
-parser.add_argument("--index_dataset",type=int,default=0)
-parser.add_argument("--father_directory", type=str,default=os.getcwd())
-parser.add_argument("--number_of_imgs",type=int,default=10)
+parser.add_argument("--index_model",type=int)
+parser.add_argument("--check_ckpt",type=int, default=0)
 args=parser.parse_args()
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-device1 = torch.device("cuda:0")
+def get_dataset_index(model_idx):
+    if(model_idx<6): dak=0
+    elif(model_idx<12): dak=1
+    elif(model_idx<18): dak=2
+    elif(model_idx<24): dak=3
+    return dak
 
-bs = 32
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+bs={
+    "cifar100": 16,
+    "cifar10": 16,
+    "mnist": 16,
+    "imgnet": 16
+}
 
 models = ['resnet50_CIFA100', 'resnet101_CIFA100', 'mobilenet_v2_CIFA100', 'alexnet_CIFA100', 'densenet121_CIFA100','inception_v3_CIFA100',
           'resnet50_CIFA10', 'resnet101_CIFA10', 'mobilenet_v2_CIFA10', 'alexnet_CIFA10', 'densenet121_CIFA10', 'inception_v3_CIFA10',
           'resnet50_MNIST', 'resnet101_MNIST', 'mobilenet_v2_MNIST', 'alexnet_MNIST', 'densenet121_MNIST', 'inception_v3_MNIST',
           'resnet50_IMGNET', 'resnet101_IMGNET','mobilenet_v2_IMGNET','alexnet_IMGNET','densenet121_IMGNET','inception_v3_IMGNET']
-adver_methods = ['FGSM','BIM','PGD','CW']
 all_datasets = ['cifar100','cifar10','mnist','imgnet']
+training_method = "ATWR"
 
-father_directory = args.father_directory
+father_directory = "/media/administrator/Data1/BC/Test_Python/"
+model_father_directory = "/media/administrator/Data1/BC/Test_Python/"
 
-print(father_directory)
-
+#adver_method_name = adver_methods[2]
 # 0-5: cifar100
 # 6-11: cifar10
 # 12-17: mnist
 # 18-23: imgnet
+# /home/kt/bc/
 model_name = models[args.index_model] 
-dataset_name = all_datasets[args.index_dataset]
-model_path = os.path.join(father_directory, "models", "{}".format(model_name), "weights_{}_best.h5".format(model_name))
-data_path = os.path.join(father_directory, "datasets_{}".format(dataset_name))
-dst_dir = os.path.join(father_directory, "adversarial_dataset_{}".format(model_name))
-label_path = os.path.join(father_directory, "{}-labels.json".format(dataset_name))
-excel_dir = os.path.join(father_directory, "excel_result", "{}".format(dataset_name),"{}".format(model_name))
-img_dst_dir = "/home/kt/bc/adversarial_resnet50_cifar100/Image_and_Noise/{}/{}/".format(dataset_name, model_name)
-img_dst_dir = os.path.join(father_directory, "Image_and_Noise", "{}".format(dataset_name), "{}".format(model_name))
-print(model_name)
-print(dataset_name)
-
-make_directory([dst_dir])
+dataset_name = all_datasets[get_dataset_index(args.index_model)]
+data_path = father_directory+"datasets_{}/".format(dataset_name)
+ori_model_path = model_father_directory+"models/{}/weights_{}_best.h5".format(model_name, model_name)
+model_dst_dir = father_directory+"def_models/{}/{}/".format(training_method,model_name)
+log_dst_path = model_dst_dir+"log.txt"
+make_directory([model_dst_dir])
 
 mean = (0.4914, 0.4822, 0.4465)
 std = (0.247, 0.243, 0.261)
@@ -136,24 +140,37 @@ def transforms_data_cifa10(width=224, height=224):
     }
     return transforms_dict
 
-def transforms_data_imgnet(width=224, height=224):
-    transforms_dict = {
-        'train':
-        transforms.Compose([
-            transforms.Resize((width, height)),
-            #transforms.RandomAffine(0,scale=(0.8, 1.2)),
-            transforms.RandomAffine(0, shear=10, scale=(0.8, 1.2)),
-            transforms.RandomHorizontalFlip(), # ngang
-            transforms.ToTensor(),
-            transforms.Normalize(mean , std)
-        ]),
-        'validation':
-        transforms.Compose([
-            transforms.Resize((width, height)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std)
-        ]),
-    }
+def transforms_data_imgnet():
+    if(model_name=='inception_v3_MNIST'):
+        transforms_dict = {
+            "train": transforms.Compose([
+                transforms.RandomResizedCrop(299),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(), # ToTensor : [0, 255] -> [0, 1]
+                transforms.Normalize(mean, std)]),
+            "validation": transforms.Compose([
+                transforms.Resize((299, 299)),
+                transforms.ToTensor(), # ToTensor : [0, 255] -> [0, 1]
+                transforms.Normalize(mean, std)])
+        }        
+    else:
+        # models except for inception
+        transforms_dict = {
+            'train':
+            transforms.Compose([
+                transforms.RandomResizedCrop(224),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(mean, std)
+            ]),
+            'validation':
+            transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(mean, std)
+            ])
+        }
     return transforms_dict
 
 def initModel(path = None):
@@ -259,7 +276,7 @@ def initData(path):
             root = path,
             train = True,
             download = True,
-            transform = data_transforms['validation']
+            transform = data_transforms['train']
         )
         test_data = datasets.CIFAR100(
             root = path,
@@ -268,13 +285,13 @@ def initData(path):
             transform = data_transforms['validation']
         )  
     elif(dataset_name=='cifar10'):
-        if(model_name=='inception_v3_CIFA10'): data_transforms = transforms_data_cifa10(width = 299, height = 299)
+        if(model_name=='inception_v3_CIFA10'): data_transforms = transforms_data_cifa10(299,299)
         else: data_transforms = transforms_data_cifa10()
         train_data = datasets.CIFAR10(
             root = path,
             train = True,
             download = True,
-            transform = data_transforms['validation']
+            transform = data_transforms['train']
         )
         test_data = datasets.CIFAR10(
             root = path,
@@ -284,39 +301,49 @@ def initData(path):
         )
     elif(dataset_name=='mnist'):
         print(path)
-        if(model_name=='inception_v3_MNIST'): data_transforms = transforms_data_mnist(width = 299, height = 299)
+        if(model_name=='inception_v3_MNIST'): data_transforms = transforms_data_mnist(299,299)
         else: data_transforms = transforms_data_mnist()
         train_data = datasets.MNIST(
             root = path,
             train = True,
-            download = False,
-            transform = data_transforms['validation']
+            download = True,
+            transform = data_transforms['train']
         )
         test_data = datasets.MNIST(
             root = path,
             train = False,
-            download = False,
+            download = True,
             transform = data_transforms['validation']
         )
     elif(dataset_name=='imgnet'):
-        if(model_name=='inception_v3_MNIST'): data_transforms = transforms_data_imgnet(width = 299, height = 299)
-        else: data_transforms = transforms_data_imgnet()
-        train_data = datasets.ImageNet(
-            root = path,
-            split = "val",
-            transform = data_transforms['validation']
-        )
+        data_transforms = transforms_data_imgnet()
+        train_data = datasets.ImageNet(root = path, split = "val", transforms = data_transforms['train'])
         test_data = datasets.ImageNet(root = path, split = "val", transforms = data_transforms['validation'])
-    train_loader = DataLoader(train_data, batch_size = bs, shuffle = False)
-    test_loader = DataLoader(test_data, batch_size = bs, shuffle = False)
-    return train_loader, test_loader
-    
-def initData2(path1, path2):
-    train_loader = torch.load(path1)
-    test_loader = torch.load(path2)
+    train_loader = DataLoader(train_data, batch_size = bs[dataset_name], shuffle = False)
+    test_loader = DataLoader(test_data, batch_size = bs[dataset_name], shuffle = False)
     return train_loader, test_loader
 
+pgd_criterion = torch.nn.CrossEntropyLoss()
+pgd_lr = 4/225
+if(model_name[:12]=="inception_v3"): pgd_lr=2/299
+pgd_epochs = 20
+pgd_epsilon = 0.1
+
+train_criterion = torch.nn.CrossEntropyLoss()
+train_alpha = 1
+train_weight_decay = 0.005
+train_lr = 0.001
+train_regu = 5e-4
+train_percentage = {
+    "train": 20/100,
+    "validate":20/100
+}
+
 def pgd(model, X, y, criterion, lr, epsilon, epochs):
+    flag = 0
+    if(model.training):
+        flag=1
+        model.eval()
     delta = torch.zeros_like(X, requires_grad = True, device = device)
     for i in range(epochs):
         nX = X + delta
@@ -325,217 +352,85 @@ def pgd(model, X, y, criterion, lr, epsilon, epochs):
         delta.data = (delta + lr * delta.grad.data).clamp(-epsilon,epsilon)
         delta.grad.zero_()
     nX = X + delta.detach()
+    if(flag): model.train()
     return nX
     
-def fgsm(model, imgs, labels, criterion, epsilon):
-    delta = torch.zeros_like(imgs, requires_grad = True, device = device)
-    outs = model(imgs+delta)
-    loss=criterion(outs,labels)
-    loss.backward()
-    nimgs = imgs + epsilon * delta.grad.detach().sign()
-    nimgs = torch.clamp(nimgs, 0, 1)
-    return nimgs
+def train_model(model, loader, criterion, alpha, weight_decay, lr, checkpoint_path, epochs=120):
+    model.train()
+    optimizer = torch.optim.Adam(params = model.parameters(), lr = lr, weight_decay=weight_decay)
+    early_stopping = EarlyStopping(patience=10, verbose=True, path=checkpoint_path)    
+    best_acc = 0
+    best_model_wts = copy.deepcopy(model.state_dict())
+    for iter in range(epochs):
+        print("Epoch {}/{}".format(iter+1,epochs))
+        print("-"*10)
+        for phase in ["train","validate"]:
+            if(phase=="validate"): model.eval()
+            else: model.train()
+                
+            running_loss = 0
+            running_corrects = 0
+            total = 0
 
-def cw_attack_l2(model, imgs, labels, lr, bs_step):
-    atk = torchattacks.CW(model, steps=bs_step, lr=lr)
-    adv_imgs = atk(imgs,labels)
-    return adv_imgs
+            number_of_batch = (len(loader[phase].dataset) * train_percentage[phase]) / bs[dataset_name]
 
-def bim(model, imgs, labels, epsilon, alpha = 1/255):
-    atk = torchattacks.BIM(model, eps = epsilon, alpha = alpha, steps = 0)
-    adv_imgs = atk(imgs, labels)
-    return adv_imgs
+            for batch_idx, (imgs, labels) in enumerate(loader[phase]):
+                if((batch_idx+1)%50==0 or batch_idx==0): print("epoch: {} - batch_idx: {}".format(iter+1, batch_idx+1))
+                if((batch_idx+1)==number_of_batch): break
 
-pgd_criterion = torch.nn.CrossEntropyLoss()
-pgd_lr = 2/255
-pgd_epochs = 7
+                total += imgs.shape[0]
+                imgs = imgs.to(device)
+                labels = labels.to(device)
 
-fgsm_criterion = torch.nn.CrossEntropyLoss()
+                if(model_name[:12]=="inception_v3" and phase=="train"):
+                    adv_imgs = pgd(model, imgs, labels, pgd_criterion, pgd_lr, pgd_epsilon, pgd_epochs)
+                    adv_outs, aux_adv_outs = model(adv_imgs)
+                    adv_loss = criterion(adv_outs, labels) + 0.4 * criterion(aux_adv_outs, labels)
 
-bim_criterion = torch.nn.CrossEntropyLoss()
-bim_alpha = 1/225
+                    clean_outs, aux_clean_outs = model(imgs)
+                    clean_loss = criterion(clean_outs, labels) + 0.4 * criterion(aux_clean_outs, labels)
 
-cw_lr = 0.01
-cw_bs_step = 4
+                else:
+                    adv_imgs = pgd(model, imgs, labels, pgd_criterion, pgd_lr, pgd_epsilon, pgd_epochs)
+                    adv_outs = model(adv_imgs)
+                    adv_loss = criterion(adv_outs, labels)
 
-def adver_method(model, images, labels, epsilon, method):
-    if(method == 'BIM'): 
-        return bim(model, images, labels, epsilon, alpha = bim_alpha)
-    if(method == 'FGSM'): 
-        return fgsm(model, images, labels, fgsm_criterion, epsilon)
-    if(method == 'PGD'): 
-        return pgd(model, images, labels, pgd_criterion, pgd_lr, epsilon, pgd_epochs)
-    if(method == 'CW_L2'):
-        return cw_attack_l2(model, images, labels, cw_lr, cw_bs_step)
+                    clean_outs = model(imgs)
+                    clean_loss = criterion(clean_outs, labels)
 
-def get_label_names(path):
-    with open(path,"r") as file:
-        data = json.load(file)
-    return data
+                loss = clean_loss + alpha * adv_loss
 
-names = get_label_names(label_path)
+                if(phase=="train"):
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+                
+                running_loss += loss.item()
+                _, adv_preds = torch.max(adv_outs, 1)
+                running_corrects += torch.sum(adv_preds == labels.data)
+                #print(adv_preds == labels.data)
 
-def denormalize(img):
-    new_img = img * torch.tensor(std).view(3, 1, 1) + torch.tensor(mean).view(3, 1, 1)
-    return new_img
+            epoch_loss = running_loss/total
+            epoch_acc = running_corrects/total
 
-def Get_PIL_Image(img):
-    img = denormalize(img)
-    img = transforms.Resize((400, 400))(img)
-    img = transforms.ToPILImage(mode='RGB')(img)
-    return img
+            if(phase=='validate'):
+                valid_loss = epoch_loss
+                valid_acc = epoch_acc
 
-side = Side(style = 'thick')
+            print('phase: {} - loss: {:.4f} - acc: {:.4f}'.format(phase,epoch_loss, epoch_acc))
+        
+        if(valid_acc>best_acc):
+            best_acc=valid_acc
+            wts = copy.deepcopy(model.state_dict())
+            best_model_wts = wts
+            torch.save(best_model_wts, checkpoint_path)
 
-def write_data(idx_row, sheet, out, gt_label):
-    #print(torch.sum(out).item())
-    pred = torch.argsort(out, dim = 0, descending=True)[:5]
-    sheet.cell(row = idx_row, column = 1).value = names[int(gt_label)]
-    sheet.cell(row = idx_row, column = 1).alignment = Alignment(horizontal='center')
-    sheet.cell(row = idx_row, column = 1).border = Border(right = side)
-    
-    for i in range(0, 5):
-        sheet.cell(row = idx_row + i, column = 2).value = names[pred[i]]
-        sheet.cell(row = idx_row + i, column = 2).alignment = Alignment(horizontal='center')
-        sheet.cell(row = idx_row + i, column = 2).border = Border(right = side, left = side)
-        sheet.cell(row = idx_row + i, column = 3).value = out[pred[i]].item()
-        sheet.cell(row = idx_row + i, column = 3).alignment = Alignment(horizontal='center')
-        sheet.cell(row = idx_row + i, column = 3).border = Border(right = side, left = side)
-    sheet.cell(row = idx_row + 4, column = 2).border = Border(right = side, left = side, bottom = side)
-    sheet.cell(row = idx_row + 4, column = 3).border = Border(right = side, left = side, bottom = side)
-    sheet.cell(row = idx_row + 4, column = 1).border = Border(right = side, left = side, bottom = side)
-    
-def Export_Result(idx, out1, out2, gt_label, book):
-    sheet1 = book["original datasets"]
-    write_data(idx, sheet1, out1, gt_label)
-    sheet2 = book["adversarial datasets"]
-    write_data(idx, sheet2, out2, gt_label)
-
-def initWorkbook():
-    book = yxl.Workbook()
-    del book["Sheet"]
-    for x in ["original datasets", "adversarial datasets"]:
-        sheet = book.create_sheet(x)
-        sheet.column_dimensions['A'].width = 30
-        sheet.column_dimensions['B'].width = 30
-        sheet.column_dimensions['C'].width = 30
-        sheet.merge_cells(start_row = 1, start_column = 2, end_row = 1, end_column = 3)
-        sheet.merge_cells(start_row = 1, start_column = 1, end_row = 2, end_column = 1)
-        sheet.cell(row = 1, column = 1).value = "Image True Class"
-        sheet.cell(row = 1, column = 1).alignment = Alignment(horizontal='center', vertical = 'center')
-        sheet.cell(row = 1, column = 2).value = "Top 5 Predicted Classes and Confidence"
-        sheet.cell(row = 1, column = 2).alignment = Alignment(horizontal='center')
-        sheet.cell(row = 2, column = 2).value = "Class"
-        sheet.cell(row = 2, column = 2).alignment = Alignment(horizontal='center')
-        sheet.cell(row = 2, column = 3).value = "Confidence"
-        sheet.cell(row = 2, column = 3).alignment = Alignment(horizontal='center')
-        sheet['A2'].border = Border(right = side, bottom = side)
-        sheet['A1'].border = Border(right = side)
-        sheet['B1'].border = Border(bottom = side,right = side)
-        sheet['B2'].border = Border(bottom = side, right = side)
-        sheet['C2'].border = Border(bottom = side, right = side)
-        sheet['C1'].border = Border(bottom = side,right = side)
-    return book
-
-def initWorkbook2():
-    book = yxl.Workbook()
-    sheet = book["Sheet"]
-    for i in range(0,5):
-        sheet.column_dimensions[chr(ord('A')+i)].width = 30
-    sheet.merge_cells('A1:A2')
-    sheet.merge_cells('B1:C1')
-    sheet.merge_cells('D1:E1')
-
-    sheet['A1'].value = 'Epsilon'
-    sheet['B1'].value = 'Clean images'
-    sheet['D1'].value = 'Adv. images'
-    sheet['B2'].value = 'top-1'
-    sheet['C2'].value = 'top-5'
-    sheet['D2'].value = 'top-1'
-    sheet['E2'].value = 'top-5'
-    for dak in ['A1', 'B1', 'D1', 'B2', 'C2', 'D2', 'E2']:
-        sheet[dak].alignment = Alignment(horizontal='center', vertical = 'center')
-    return book
-
-def get(model, loader, epsilon, method_name, book2, criterion):
-    model.eval()
-    print("{}: {}".format(epsilon, method_name))
-    book = initWorkbook()
-    excel_path = excel_dir+method_name+"/result_epsilon_{}.xlsx".format(epsilon)
-    idx2 = 0 
-    idx_excel_row = 3
-    taken = np.zeros(1000)
-    top_1_correct ={"ori": 0,"adv": 0}
-    top_5_correct = {"ori": 0,"adv": 0}
-    num_imgs = 0
-
-    for batch_idx, (ori_imgs,labels) in enumerate(loader):
-        if(batch_idx==5): break
-        print("Batch: #{}".format(batch_idx))
-        ori_imgs = ori_imgs.to(device)
-        labels = labels.to(device)
-        adv_imgs = adver_method(model, ori_imgs, labels, epsilon, method_name)
-        out1s = F.softmax(model(ori_imgs), dim = 1)
-        out2s = F.softmax(model(adv_imgs), dim = 1)
-        pred={
-            "ori":torch.argsort(out1s, dim = 1, descending = True),
-            "adv":torch.argsort(out2s, dim = 1, descending = True)
-        }
-        for state in ["ori","adv"]:
-            for idx2, dak in enumerate(pred[state]):
-                top_1_correct[state] += (dak[0]==labels[idx2])
-                top_5_correct[state] += (labels[idx2] in dak)
-        num_imgs += ori_imgs.shape[0]
-
-        for idx3 in range(0,bs):
-            gt_label = labels[idx3].item()
-
-            inp = ori_imgs[idx3][None,:].to(device)
-            out1 = out1s[idx3]
-
-            inp2 = adv_imgs[idx3][None,:].to(device)
-            out2 = out2s[idx3]
-            
-            if(pred["ori"][idx3][0] != gt_label or taken[int(gt_label)]==1 or idx2==args.number_of_imgs):
-                continue
-            taken[int(gt_label)] = 1
-
-            img_dst_dir_cur = os.path.join(img_dst_dir,method_name,"epsilon_{}".format(epsilon))
-            make_directory([img_dst_dir_cur])
-            path_adv_img = os.path.join(img_dst_dir_cur,"adv_img_{}.jpg".format(names[int(gt_label)]))
-            path_ori_img = os.path.join(img_dst_dir_cur,"ori_img_{}.jpg".format(names[int(gt_label)]))
-            path_noise_img = os.path.join(img_dst_dir_cur,"noise_img_{}.jpg".format(names[int(gt_label)]))    
-
-            Export_Result(idx_excel_row, out1, out2, gt_label, book)
-
-            inp = ori_imgs[idx3].to("cpu")
-            img = Get_PIL_Image(inp)
-            img.save(path_adv_img)
-
-            inp2 = adv_imgs[idx3].to("cpu")
-            img2 = Get_PIL_Image(inp2)
-            img2.save(path_ori_img)
-
-            inp3 = inp2-inp
-            img3 = Get_PIL_Image(inp3)
-            img3.save(path_noise_img)
-
-            idx2 += 1
-            idx_excel_row += 5
-    book.save(excel_path)
-
-    sheet = book2["Sheet"]
-    sheet["A"+str(epsilon_idx+3)].value = epsilon
-    sheet["A"+str(epsilon_idx+3)].alignment = Alignment(horizontal='center', vertical = 'center')
-    for idx, state in enumerate(["ori", "adv"]):
-        top_1 = top_1_correct[state] / num_imgs * 100
-        top_5 = top_5_correct[state] / num_imgs * 100
-        sheet[chr(ord('B')+idx*2)+str(epsilon_idx+3)].value = str(top_1.to("cpu").numpy())
-        sheet[chr(ord('B')+idx*2)+str(epsilon_idx+3)].alignment = Alignment(horizontal='center', vertical = 'center')
-        sheet[chr(ord('C')+idx*2)+str(epsilon_idx+3)].value = str(top_5)
-        sheet[chr(ord('C')+idx*2)+str(epsilon_idx+3)].alignment = Alignment(horizontal='center', vertical = 'center')
-
-    print("{} method has Correct / Total : {} / {}".format(method_name, top_1_correct["adv"], num_imgs))
+        early_stopping(valid_loss, model)
+        if(early_stopping.early_stop):
+            print("Early Stopped")
+            break
+    model.load_state_dict(best_model_wts)
+    return model, best_acc
 
 if __name__=='__main__':
     nvmlInit()
@@ -548,32 +443,32 @@ if __name__=='__main__':
             end="\r", flush=True)
             gpu_busy = int(info.used/(1.05*1000000)) > 6000
         system("cls")
-                
-        nnModel = initModel(model_path)
-        criterion = nn.CrossEntropyLoss()
+
+        sys.stdout = Logger(log_dst_path)
+
+        print(model_name)
+        print(dataset_name)        
+        print(training_method)
         
         train_loader, test_loader = initData(data_path)
-
-        for method_name in adver_methods:
-            make_directory([excel_dir+method_name+"/"])
-            excel_path_2 = excel_dir+method_name+"/top_1_top_5.xlsx"
-            book2 =  initWorkbook2()
-            for epsilon_idx, epsilon in enumerate([0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1]):
-                if(method_name == 'CW_L2' and epsilon_idx>0): continue
-                dst_test_dir = dst_dir + method_name+"/test_dataset/"
-                dst_train_dir = dst_dir + method_name + "/train_dataset/"
-                make_directory([dst_test_dir])
-                ad_test_path = dst_test_dir+"adversarial_test_{}.pt".format(epsilon_idx+1)
-                ad_train_path = dst_train_dir+"adversarial_train_{}.pt".format(epsilon_idx+1)
-                ori_test_path = dst_test_dir+"original_test_{}.pt".format(epsilon_idx+1)
-                ori_train_path = dst_train_dir+"original_train_{}.pt".format(epsilon_idx+1)
-
-                #ad_train, ori_train = adversarial_attacks("Train",nnModel, train_loader, criterion, method_name, epsilon = epsilon)
-                #torch.save(ad_train, ad_train_path)          
-                #torch.save(ori_train,ori_train_path)
-                get(nnModel, test_loader, epsilon, method_name, book2, criterion)
-            
-            book2.save(excel_path_2)
+        loader = {
+            "train": train_loader,
+            "validate": test_loader
+        }
+        best_model_path = model_dst_dir+"weights_{}_best.h5".format(model_name)
+        ckpt_model_path = model_dst_dir+"weights_{}_checkpoint.pt".format(model_name)        
+        if(args.check_ckpt==0): nnModel = initModel(ori_model_path)
+        else: nnModel=initModel(ckpt_model_path)
+        best_nnModel,acc = train_model(
+            model = nnModel, 
+            loader = loader, 
+            criterion = train_criterion, 
+            alpha = train_alpha,
+            weight_decay = train_weight_decay,
+            lr = train_lr, 
+            checkpoint_path =ckpt_model_path,
+            epochs = 120)
+        torch.save(best_nnModel.state_dict(), best_model_path)
 
 
     except KeyboardInterrupt:
