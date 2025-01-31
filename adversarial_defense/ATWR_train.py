@@ -331,12 +331,11 @@ pgd_epsilon = 0.1
 
 train_criterion = torch.nn.CrossEntropyLoss()
 train_alpha = 1
-train_alpha2 = 1
+train_alpha2 = 0.005
 train_lr = 0.001
-train_regu = 5e-4
 train_percentage = {
     "train": 20/100,
-    "validate": 20/100
+    "validate":20/100
 }
 
 def pgd(model, X, y, criterion, lr, epsilon, epochs):
@@ -354,16 +353,10 @@ def pgd(model, X, y, criterion, lr, epsilon, epochs):
     nX = X + delta.detach()
     if(flag): model.train()
     return nX
-
-def get_l2_regu(model, lambda_reg=0.01):
-    reg_loss = 0
-    for param in model.parameters():
-        reg_loss += torch.sum(param ** 2)
-    return lambda_reg * torch.sqrt(reg_loss)
     
 def train_model(model, loader, criterion, alpha, alpha2, lr, checkpoint_path, epochs=120):
     model.train()
-    optimizer = torch.optim.Adam(params = model.parameters(), lr = lr)
+    optimizer = torch.optim.Adam(params = model.parameters(), lr = lr, weight_decay=alpha2)
     early_stopping = EarlyStopping(patience=10, verbose=True, path=checkpoint_path)    
     best_acc = 0
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -404,7 +397,7 @@ def train_model(model, loader, criterion, alpha, alpha2, lr, checkpoint_path, ep
                     clean_outs = model(imgs)
                     clean_loss = criterion(clean_outs, labels)
 
-                loss = clean_loss + alpha * adv_loss + get_l2_regu(model,alpha2)
+                loss = clean_loss + alpha * adv_loss
 
                 if(phase=="train"):
                     optimizer.zero_grad()
