@@ -331,7 +331,7 @@ pgd_epsilon = 0.1
 
 train_criterion = torch.nn.CrossEntropyLoss()
 train_alpha = 1
-train_weight_decay = 0.005
+train_alpha2 = 0.005
 train_lr = 0.001
 train_regu = 5e-4
 train_percentage = {
@@ -355,9 +355,9 @@ def pgd(model, X, y, criterion, lr, epsilon, epochs):
     if(flag): model.train()
     return nX
     
-def train_model(model, loader, criterion, alpha, weight_decay, lr, checkpoint_path, epochs=120):
+def train_model(model, loader, criterion, alpha, alpha2, lr, checkpoint_path, epochs=120):
     model.train()
-    optimizer = torch.optim.Adam(params = model.parameters(), lr = lr, weight_decay=weight_decay)
+    optimizer = torch.optim.Adam(params = model.parameters(), lr = lr, weight_decay=alpha2)
     early_stopping = EarlyStopping(patience=10, verbose=True, path=checkpoint_path)    
     best_acc = 0
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -464,7 +464,7 @@ if __name__=='__main__':
             loader = loader, 
             criterion = train_criterion, 
             alpha = train_alpha,
-            weight_decay = train_weight_decay,
+            alpha2 = train_alpha2,
             lr = train_lr, 
             checkpoint_path =ckpt_model_path,
             epochs = 120)
