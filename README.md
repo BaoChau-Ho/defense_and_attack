@@ -27,7 +27,7 @@ There are three training methods that are reviewed in the paper:
 Usage: We also index these training methods for convenience  
 * We pre-trained the models using normal datasets before applying the methods on them. The codes used are `ATWR_train.py`, `ATGR_train.py` and `EATR_train.py` respectively  
 * The top 1 and top 5 results are taken with `adversarial_defense_get_results.py`  
-* Note: The code is mostly for reference purpose.  
+* Note: The codes are mostly for reference purpose.  
 
 
 
