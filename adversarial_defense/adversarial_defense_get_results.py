@@ -16,7 +16,6 @@ from torchvision import transforms
 from pytorchtools import EarlyStopping
 from utils import Logger
 from pynvml import *
-import cw
 
 import json
 import os
