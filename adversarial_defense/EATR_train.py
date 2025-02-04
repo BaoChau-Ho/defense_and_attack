@@ -334,6 +334,7 @@ def unfreeze(model):
 
 pgd_criterion = torch.nn.CrossEntropyLoss()
 pgd_lr = 2/255
+#if(model_name[:9]=="inception"): pgd_lr = 2/299
 pgd_epsilon = 0.1
 pgd_epochs = 5
 
@@ -342,9 +343,15 @@ fgsm_epsilon = 0.1
 
 bim_epsilon = 0.1
 bim_alpha = 1/255
+#if(model_name[:9]="inception"): bim_alpha = 2/299
 
+#cw_lr = 5e-4
 cw_lr = 0.01
-cw_bs_step = 4
+#cw_steps = 100
+cw_steps = 4
+#cw_c = 0.5
+cw_c = 1
+
 
 train_criterion = torch.nn.CrossEntropyLoss()
 train_fgsm_alpha = 1
@@ -390,8 +397,8 @@ def fgsm(model, imgs, labels, criterion, epsilon):
     if(flag): model.train()
     return nimgs
 
-def cw_attack_l2(model, imgs, labels, lr, bs_step):
-    atk = torchattacks.CW(model, steps=bs_step, lr=lr)
+def cw_attack_l2(model, imgs, labels, lr, step, c):
+    atk = torchattacks.CW(model,c=c, steps=step, lr=lr)
     adv_imgs = atk(imgs,labels)
     return adv_imgs
 
@@ -409,7 +416,7 @@ def adver_method(model, images, labels, method):
     if(method == 'PGD'): 
         return pgd(model, images, labels, pgd_criterion, pgd_lr, pgd_epsilon, pgd_epochs)
     if(method == 'CW_L2'):
-        return cw_attack_l2(model, images, labels, cw_lr, cw_bs_step)
+        return cw_attack_l2(model, images, labels, cw_lr, cw_bs_step, cw_c)
 
 def get_grad_regu(model, imgs, labels, criterion):
     l2_regu = 0
