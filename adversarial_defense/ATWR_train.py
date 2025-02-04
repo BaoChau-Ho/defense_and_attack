@@ -332,6 +332,7 @@ pgd_epsilon = 0.1
 train_criterion = torch.nn.CrossEntropyLoss()
 train_alpha = 1
 train_alpha2 = 0.005
+train_w = 5e-4
 train_lr = 0.001
 train_percentage = {
     "train": 20/100,
