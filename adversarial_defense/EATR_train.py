@@ -342,7 +342,7 @@ fgsm_criterion = torch.nn.CrossEntropyLoss()
 fgsm_epsilon = 0.1
 
 bim_epsilon = 0.1
-bim_alpha = 1/255
+bim_alpha = 2/255
 #if(model_name[:9]="inception"): bim_alpha = 2/299
 
 #cw_lr = 5e-4
