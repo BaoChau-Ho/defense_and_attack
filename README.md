@@ -16,7 +16,7 @@ The code used to generate the attacks and their top 1 and top 5 accuracies is `a
 Usage: We index the datasets and models used as backbone in the code for convenience
 * `adversarial_attacks_get_result.py` is used to generate adversarial attacks along side the top 1 and top 5 accuracies of the model on both the original and the adversarial datasets.
 * Note:
-  - Datasets (along side a json file of the labels) and Models should be prepared beforehand: Most datasets can be downloaded via pytorch's Dataset, except for IMGNET. Models from pytorch are trained on IMGNET, while the code requires them to be trained on other datasets as well.
+  - Datasets (alongside a json file of the labels) and Models should be prepared beforehand: Most datasets can be downloaded via pytorch's Dataset, except for IMGNET. Models from pytorch are trained on IMGNET, while the code requires them to be trained on other datasets as well.
   - The code is mostly for reference purpose.
 # Adversarial Defense  
 There are three training methods that are reviewed in the paper:  
