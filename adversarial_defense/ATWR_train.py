@@ -355,7 +355,7 @@ def pgd(model, X, y, criterion, lr, epsilon, epochs):
     if(flag): model.train()
     return nX
     
-def train_model(model, loader, criterion, alpha, alpha2, lr, checkpoint_path, epochs=120):
+def train_model(model, loader, criterion, alpha, alpha2, regu, lr, checkpoint_path, epochs=120):
     model.train()
     optimizer = torch.optim.Adam(params = model.parameters(), lr = lr, weight_decay=alpha2)
     early_stopping = EarlyStopping(patience=10, verbose=True, path=checkpoint_path)    
@@ -399,6 +399,7 @@ def train_model(model, loader, criterion, alpha, alpha2, lr, checkpoint_path, ep
                     clean_loss = criterion(clean_outs, labels)
 
                 loss = clean_loss + alpha * adv_loss
+                #loss = clean_loss + alpha * adv_loss + regu
 
                 if(phase=="train"):
                     optimizer.zero_grad()
@@ -465,6 +466,7 @@ if __name__=='__main__':
             criterion = train_criterion, 
             alpha = train_alpha,
             alpha2 = train_alpha2,
+            regu = train_w,
             lr = train_lr, 
             checkpoint_path =ckpt_model_path,
             epochs = 120)
