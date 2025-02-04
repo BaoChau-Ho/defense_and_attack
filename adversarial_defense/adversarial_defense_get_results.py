@@ -335,7 +335,7 @@ def adver_method(model, images, labels, method):
     if(method == 'PGD'): 
         return pgd(model, images, labels, pgd_criterion, pgd_lr, pgd_epsilon, pgd_epochs)
     if(method == 'CW_L2'):
-        return cw_attack_l2(model, images, labels, cw_lr, cw_bs_step, cw_c)
+        return cw_attack_l2(model, images, labels, cw_lr, cw_steps, cw_c)
     
 def initWorkbook():
     book = yxl.Workbook()
