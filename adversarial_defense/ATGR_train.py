@@ -460,7 +460,7 @@ if __name__=='__main__':
             alpha2 = train_alpha_2,
             lr = train_lr, 
             checkpoint_path =ckpt_model_path,
-            epochs = 70)
+            epochs = 150)
         torch.save(best_nnModel.state_dict(), best_model_path)
 
 
