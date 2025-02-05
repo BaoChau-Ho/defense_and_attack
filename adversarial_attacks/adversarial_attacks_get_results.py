@@ -46,7 +46,7 @@ models = ['resnet50_CIFA100', 'resnet101_CIFA100', 'mobilenet_v2_CIFA100', 'alex
           'resnet50_CIFA10', 'resnet101_CIFA10', 'mobilenet_v2_CIFA10', 'alexnet_CIFA10', 'densenet121_CIFA10', 'inception_v3_CIFA10',
           'resnet50_MNIST', 'resnet101_MNIST', 'mobilenet_v2_MNIST', 'alexnet_MNIST', 'densenet121_MNIST', 'inception_v3_MNIST',
           'resnet50_IMGNET', 'resnet101_IMGNET','mobilenet_v2_IMGNET','alexnet_IMGNET','densenet121_IMGNET','inception_v3_IMGNET']
-adver_methods = ['FGSM','BIM','PGD','CW']
+adver_methods = ['FGSM','BIM','PGD','CW_L2']
 all_datasets = ['cifar100','cifar10','mnist','imgnet']
 
 father_directory = args.father_directory
