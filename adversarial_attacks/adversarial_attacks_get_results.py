@@ -347,14 +347,14 @@ def bim(model, imgs, labels, epsilon, alpha = 1/255):
 
 pgd_criterion = torch.nn.CrossEntropyLoss()
 pgd_lr = 2/255
-#if(model_name[:9]=="inception"): pgd_lr = 2/299
+if(model_name[:9]=="inception"): pgd_lr = 2/299
 pgd_epochs = 7
 
 fgsm_criterion = torch.nn.CrossEntropyLoss()
 
 bim_criterion = torch.nn.CrossEntropyLoss()
 bim_alpha = 2/225
-#if(model_name[:9]="inception"): bim_alpha = 2/299
+if(model_name[:9]="inception"): bim_alpha = 2/299
 
 #cw_lr = 5e-4
 cw_lr = 0.01
